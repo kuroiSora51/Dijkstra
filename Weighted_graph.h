@@ -49,8 +49,10 @@ class Weighted_graph {
         //static int n; // the number of vertices
 		static const double INF;
         vector<Vertex*> vertices;
+        vector<vector<int>> min_dist; // d[a][b] will provide the smallest distance for a -> b
+         bool is_current; // checks if min_dist is up to date
 	public:
-		Weighted_graph(int n = 50) {
+		Weighted_graph(int n = 50) : is_current(false) {
             vertices.resize(n);
             for (int i = 0; i < n; i++) 
                 vertices[i]->val = i;
@@ -65,8 +67,17 @@ class Weighted_graph {
 		int degree( int ) const;
 		int edge_count() const;
 		double adjacent( int, int ) const;
-		double distance( int, int );
 
+		double distance(int u, int v) {
+            // if is not current we need to update
+            if (!is_current) { 
+                precompute_distances();
+                is_current = true;
+            }
+            return min_dist[u][v];
+        }
+
+        //this makes current = false everytime
 		void insert( int, int, double );
 
         void dijkstra (Vertex* start) {
@@ -92,8 +103,17 @@ class Weighted_graph {
                     queue.push({from->dist, from});
                 }
             }
-
-}
+            int n = min_dist.size();
+            for (int i = 0; i < n; i++) {
+                min_dist[start->val][i] = vertices[i]->dist; 
+            }
+        } 
+    
+        void precompute_distances() {
+            for(Vertex* v: vertices) {
+                dijkstra(v);
+            }
+        }
 
 	// Friends
 
