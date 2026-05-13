@@ -28,11 +28,11 @@ using namespace std;
 struct Vertex;
 
 struct Edge {
-   Vertex* v;
-   Vertex* u;
-   double w;
+   Vertex* from;
+   Vertex* to;
+   double weight;
 
-   Edge(Vertex* v_, Vertex* u_, double w_) : v(v_), u(u_), w(w_) {} 
+   Edge(Vertex* v, Vertex* u, double w) : from(v), to(u), weight(w) {} 
    Edge() = default;
 };
 
@@ -69,25 +69,27 @@ class Weighted_graph {
 
 		void insert( int, int, double );
 
-        void dijkstra (Vertex* x) {
+        void dijkstra (Vertex* start) {
             using P = pair<double, Vertex*>;
-            priority_queue<P, vector<P>, greater<P>> q;
+            priority_queue<P, vector<P>, greater<P>> queue;
             
-            x->dist = 0;
-            q.push({0, x});
+            start->dist = 0;
+            // the ordered pair is stored by the distance on ascending order
+            // we travel through the adjacent vertices of each vertex in the queue
+            queue.push({0, start}); 
             
-            while (!q.empty()) {
-                auto [d, v] = q.top();
-                q.pop();
+            while (!queue.empty()) {
+                auto [d, v] = queue.top(); //decompose into distance d and vertex v of distance d
+                queue.pop();
 
                 if (d != v->dist) continue;
 
                 for (Edge& e: v->adj) {
-                    Vertex* u = e.u;
-                    if (v->dist + e.w >= u->dist) continue;
+                    Vertex* from = e.from;
+                    if (v->dist + e.weight >= from->dist) continue;
 
-                    u->dist = v->dist + e.w;
-                    q.push({u->dist, u});
+                    from->dist = v->dist + e.weight;
+                    queue.push({from->dist, from});
                 }
             }
 
