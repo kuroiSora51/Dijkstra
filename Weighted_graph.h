@@ -21,6 +21,9 @@
 #include <limits>
 #include <vector>
 #include <queue>
+#include <cmath>
+#include "Exception.h"
+
 
 using namespace std;
 // include whatever classes you want
@@ -40,22 +43,32 @@ struct Vertex {
    int val; //this can be removed at the end
    double dist = std::numeric_limits<double>::infinity();
    vector<Edge> adj;
+
+   Vertex(int value) : val(value) {}
+   Vertex() = default;
 };
 
 class Weighted_graph {
 	private:
 		// your implementation here
 		//  you can add both private member variables and private member functions
-        //static int n; // the number of vertices
 		static const double INF;
         vector<Vertex*> vertices;
-        vector<vector<int>> min_dist; // d[a][b] will provide the smallest distance for a -> b
-         bool is_current; // checks if min_dist is up to date
+        vector<vector<double>> min_dist; // d[a][b] will provide the smallest distance for a -> b
+        bool is_current; // checks if min_dist is up to date
+        int edges;
 	public:
-		Weighted_graph(int n = 50) : is_current(false) {
+		Weighted_graph(int n = 50) : is_current(false), edges(0) {
+			if (n <= 0) {
+		        n = 1; //handle bad input, based on the instructions
+		    }
+			
             vertices.resize(n);
-            for (int i = 0; i < n; i++) 
-                vertices[i]->val = i;
+            min_dist.resize(n, vector<double>(n, INF));
+            
+            for (int i = 0; i < n; i++) {
+				vertices[i] = new Vertex(i);
+			}
         }
 		~Weighted_graph() {
             for (auto& v: vertices) {
@@ -63,27 +76,98 @@ class Weighted_graph {
             }
         }
 
-        // returns 
-		int degree( int ) const;
-		int edge_count() const;
-		double adjacent( int, int ) const;
+   
+		
+		// Returns the degree of vertex n.
+		// Throws illegal_argument if n is invalid.
+		int degree( int n ) const {
+		
+		    if (n < 0 || n >= vertices.size()) {
+		        throw illegal_argument();
+		    }
+		
+		    return vertices[n]->adj.size();
+		}
+		
+		/*
+		 * Returns the total number of edges in the graph.
+		 */
+		int edge_count() const {
+		    return edges;
+		}
+		double adjacent( int m, int n ) const {
+			if (m < 0 || n < 0 ||
+				m >= vertices.size() ||
+				n >= vertices.size()) {
+				throw illegal_argument();
+			}
 
-		double distance(int u, int v) {
+			for (const Edge& e : vertices[m]->adj) {
+				if (e.to == vertices[n]) {
+					return e.weight;
+				}
+			}
+
+			return INF;
+		}
+
+		double distance(int m, int n) {
+            if (m < 0 || n < 0 ||
+				m >= vertices.size() ||
+				n >= vertices.size()
+            ) {
+				throw illegal_argument(); //bad input
+			}
             // if is not current we need to update
             if (!is_current) { 
                 precompute_distances();
                 is_current = true;
             }
-            return min_dist[u][v];
+            return min_dist[m][n];
         }
 
         //this makes current = false everytime
-		void insert( int, int, double );
+		void insert( int m, int n, double w ) {
+			if (m < 0 || n < 0 || m == n ||
+				m >= vertices.size() ||
+				n >= vertices.size() ||
+				w <= 0 || isinf(w)) {
+		
+				throw illegal_argument(); //bad input
+			}
+		
+            bool found = false; //refering 
 
+			for (int i = 0; i < vertices[m]->adj.size(); i++) {
+				if (vertices[m]->adj[i].to == vertices[n]) {
+					vertices[m]->adj[i].weight = w;
+                    found = true;
+                    break;
+                }
+            }
+            is_current = false;
+            if (found) {
+                for (int j = 0; j < vertices[n]->adj.size(); j++) {
+                    if (vertices[n]->adj[j].to == vertices[m]) {
+                        vertices[n]->adj[j].weight = w;
+                        break;
+                    }
+                }
+            }
+            else {
+                vertices[m]->adj.push_back(Edge(vertices[m], vertices[n], w));
+                vertices[n]->adj.push_back(Edge(vertices[n], vertices[m], w));
+                edges++;
+            }
+		}
         void dijkstra (Vertex* start) {
             using P = pair<double, Vertex*>;
             priority_queue<P, vector<P>, greater<P>> queue;
             
+            for (Vertex* v: vertices) {
+                v->dist = INF;
+            }
+
             start->dist = 0;
             // the ordered pair is stored by the distance on ascending order
             // we travel through the adjacent vertices of each vertex in the queue
@@ -96,11 +180,11 @@ class Weighted_graph {
                 if (d != v->dist) continue;
 
                 for (Edge& e: v->adj) {
-                    Vertex* from = e.from;
-                    if (v->dist + e.weight >= from->dist) continue;
+                    Vertex* to = e.to;
+                    if (v->dist + e.weight >= to->dist) continue;
 
-                    from->dist = v->dist + e.weight;
-                    queue.push({from->dist, from});
+                    to->dist = v->dist + e.weight;
+                    queue.push({to->dist, to});
                 }
             }
             int n = min_dist.size();
