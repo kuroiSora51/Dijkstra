@@ -21,6 +21,7 @@
 #include <limits>
 #include <vector>
 #include <queue>
+#include <cmath>
 
 using namespace std;
 // include whatever classes you want
@@ -49,11 +50,18 @@ class Weighted_graph {
         //static int n; // the number of vertices
 		static const double INF;
         vector<Vertex*> vertices;
+		int edges = 0;
 	public:
 		Weighted_graph(int n = 50) {
+			if (n <= 0) {
+		        n = 1;
+		    }
+			
             vertices.resize(n);
-            for (int i = 0; i < n; i++) 
+            for (int i = 0; i < n; i++) {
+				vertices[i] = new Vertex;
                 vertices[i]->val = i;
+			}
         }
 		~Weighted_graph() {
             for (auto& v: vertices) {
@@ -62,13 +70,62 @@ class Weighted_graph {
         }
 
         // returns 
-		int degree( int ) const;
-		int edge_count() const;
+		/*
+		 * Returns the degree of vertex n.
+		 * Throws illegal_argument if n is invalid.
+		 */
+		int Weighted_graph::degree( int n ) const {
+		
+		    if (n < 0 || n >= vertices.size()) {
+		        throw illegal_argument();
+		    }
+		
+		    return vertices[n]->adj.size();
+		}
+		
+		/*
+		 * Returns the total number of edges in the graph.
+		 */
+		int Weighted_graph::edge_count() const {
+		    return edges;
+		}
 		double adjacent( int, int ) const;
 		double distance( int, int );
 
+		/*
+		 * Inserts or updates an undirected weighted edge.
+		 * Throws illegal_argument if the vertices are invalid,
+		 * the vertices are equal, or the weight is not positive.
+		 */
 		void insert( int, int, double );
+			if (m < 0 || n < 0 ||
+				m >= vertices.size() ||
+				n >= vertices.size() ||
+				m == n ||
+				w <= 0 ||
+				isinf(w)) {
+		
+				throw illegal_argument();
+			}
+		
+			for (int i = 0; i < vertices[m]->adj.size(); i++) {
+				if (vertices[m]->adj[i].u == vertices[n]) {
+					vertices[m]->adj[i].w = w;
+		
+					for (int j = 0; j < vertices[n]->adj.size(); j++) {
+						if (vertices[n]->adj[j].u == vertices[m]) {
+							vertices[n]->adj[j].w = w;
+							return;
+						}
+					}
+				}
+			}
 
+			vertices[m]->adj.push_back(Edge(vertices[m], vertices[n], w));
+			vertices[n]->adj.push_back(Edge(vertices[n], vertices[m], w));
+		
+			edges++;
+		}
         void dijkstra (Vertex* start) {
             using P = pair<double, Vertex*>;
             priority_queue<P, vector<P>, greater<P>> queue;
