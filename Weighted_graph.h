@@ -22,14 +22,14 @@
 #include <vector>
 #include <queue>
 #include <cmath>
+#include <functional>
 #include "Exception.h"
 
-
-using namespace std;
 // include whatever classes you want
 
 struct Vertex;
 
+// An edge e connects two vertices from -> to 
 struct Edge {
    Vertex* from;
    Vertex* to;
@@ -39,22 +39,22 @@ struct Edge {
    Edge() = default;
 };
 
+//A vertex is the basic unit for a graph, it's connected to some other vertices through edges
 struct Vertex {
    int val; //this can be removed at the end
    double dist = std::numeric_limits<double>::infinity();
-   vector<Edge> adj;
+   std::vector<Edge> adj;
 
    Vertex(int value) : val(value) {}
    Vertex() = default;
 };
 
+// Our graph is undirected
 class Weighted_graph {
 	private:
-		// your implementation here
-		//  you can add both private member variables and private member functions
 		static const double INF;
-        vector<Vertex*> vertices;
-        vector<vector<double>> min_dist; // d[a][b] will provide the smallest distance for a -> b
+        std::vector<Vertex*> vertices;
+        std::vector<std::vector<double>> min_dist; // d[a][b] will provide the smallest distance for a -> b
         bool is_current; // checks if min_dist is up to date
         int edges;
 	public:
@@ -64,7 +64,7 @@ class Weighted_graph {
 		    }
 			
             vertices.resize(n);
-            min_dist.resize(n, vector<double>(n, INF));
+            min_dist.resize(n, std::vector<double>(n, INF));
             
             for (int i = 0; i < n; i++) {
 				vertices[i] = new Vertex(i);
@@ -75,14 +75,11 @@ class Weighted_graph {
                 delete v;
             }
         }
-
-   
-		
 		// Returns the degree of vertex n.
 		// Throws illegal_argument if n is invalid.
 		int degree( int n ) const {
 		
-		    if (n < 0 || n >= vertices.size()) {
+		    if (n < 0 || static_cast<std::size_t>(n) >= vertices.size()) {
 		        throw illegal_argument();
 		    }
 		
@@ -97,8 +94,8 @@ class Weighted_graph {
 		}
 		double adjacent( int m, int n ) const {
 			if (m < 0 || n < 0 ||
-				m >= vertices.size() ||
-				n >= vertices.size()) {
+				static_cast<std::size_t>(m) >= vertices.size() ||
+				static_cast<std::size_t>(n) >= vertices.size()) {
 				throw illegal_argument();
 			}
 
@@ -113,8 +110,8 @@ class Weighted_graph {
 
 		double distance(int m, int n) {
             if (m < 0 || n < 0 ||
-				m >= vertices.size() ||
-				n >= vertices.size()
+				static_cast<std::size_t>(m) >= vertices.size() ||
+				static_cast<std::size_t>(n) >= vertices.size()
             ) {
 				throw illegal_argument(); //bad input
 			}
@@ -129,16 +126,16 @@ class Weighted_graph {
         //this makes current = false everytime
 		void insert( int m, int n, double w ) {
 			if (m < 0 || n < 0 || m == n ||
-				m >= vertices.size() ||
-				n >= vertices.size() ||
-				w <= 0 || isinf(w)) {
+				static_cast<std::size_t>(m) >= vertices.size() ||
+				static_cast<std::size_t>(n) >= vertices.size() ||
+				w <= 0 || std::isinf(w)) {
 		
 				throw illegal_argument(); //bad input
 			}
 		
             bool found = false; //refering 
 
-			for (int i = 0; i < vertices[m]->adj.size(); i++) {
+			for (std::size_t i = 0; i < vertices[m]->adj.size(); i++) {
 				if (vertices[m]->adj[i].to == vertices[n]) {
 					vertices[m]->adj[i].weight = w;
                     found = true;
@@ -147,7 +144,7 @@ class Weighted_graph {
             }
             is_current = false;
             if (found) {
-                for (int j = 0; j < vertices[n]->adj.size(); j++) {
+                for (std::size_t j = 0; j < vertices[n]->adj.size(); j++) {
                     if (vertices[n]->adj[j].to == vertices[m]) {
                         vertices[n]->adj[j].weight = w;
                         break;
@@ -160,21 +157,24 @@ class Weighted_graph {
                 edges++;
             }
 		}
+        // computes min distance for a single vertex using priproty queue
         void dijkstra (Vertex* start) {
-            using P = pair<double, Vertex*>;
-            priority_queue<P, vector<P>, greater<P>> queue;
+            using P = std::pair<double, Vertex*>;
+            std::priority_queue<P, std::vector<P>, std::greater<P>> queue;
             
             for (Vertex* v: vertices) {
-                v->dist = INF;
+                v->dist = INF; //initialize distance
             }
 
-            start->dist = 0;
+            start->dist = 0; //min_dist[start][start] = 0
             // the ordered pair is stored by the distance on ascending order
             // we travel through the adjacent vertices of each vertex in the queue
             queue.push({0, start}); 
             
             while (!queue.empty()) {
-                auto [d, v] = queue.top(); //decompose into distance d and vertex v of distance d
+                P current = queue.top();
+                double d = current.first;
+                Vertex* v = current.second;
                 queue.pop();
 
                 if (d != v->dist) continue;
@@ -187,8 +187,8 @@ class Weighted_graph {
                     queue.push({to->dist, to});
                 }
             }
-            int n = min_dist.size();
-            for (int i = 0; i < n; i++) {
+            std::size_t n = min_dist.size();
+            for (std::size_t i = 0; i < n; i++) {
                 min_dist[start->val][i] = vertices[i]->dist; 
             }
         } 
@@ -211,6 +211,7 @@ const double Weighted_graph::INF = std::numeric_limits<double>::infinity();
 // You can modify this function however you want:  it will not be tested
 
 std::ostream &operator<<( std::ostream &out, Weighted_graph const &graph ) {
+	(void) graph;
 	return out;
 }
 
